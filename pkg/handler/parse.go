@@ -36,10 +36,14 @@ func (h *Handler) parseVacancies(ctx *gin.Context) {
 
 	// Only one service needs to check old vacancies
 	if input.IsChosen {
-		if err := checkOldVacancies(oldVacancies); err != nil {
-			logrus.Errorf("Error occured while checking old vacancies:\n %s", err.Error())
-			newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-			return
+		vacancyForDelete := checkOldVacancies(oldVacancies)
+		if len(vacancyForDelete) != 0 {
+			err := h.service.Vacancies.DeleteUnactual(vacancyForDelete)
+			if err != nil {
+				logrus.Errorf("Error occured while deleting old vacancies:\n %s", err.Error())
+				newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+				return
+			}
 		}
 	}
 
@@ -53,10 +57,25 @@ func (h *Handler) parseVacancies(ctx *gin.Context) {
 	}
 }
 
-func checkOldVacancies(oldVacancies []parser.Vacancy) error {
+// check if vacancies in db is actual
+// also removing unactual vacancies from oldVacancies
+func checkOldVacancies(oldVacancies []parser.Vacancy) []int {
 
+	j := 0
+	// id of vacancies that needed to be removed
+	var vacancyForDelete []int
+	for _, vacancy := range oldVacancies {
+
+		// If resume is not actual
+		if resp, err := http.Get(vacancy.Url); err != nil || resp.StatusCode == http.StatusNotFound {
+			vacancyForDelete = append(vacancyForDelete, vacancy.Id)
+			oldVacancies[j] = vacancy
+			j++
+		}
+	}
+	oldVacancies = oldVacancies[:j]
 	fmt.Println(oldVacancies)
-	return nil
+	return vacancyForDelete
 }
 
 func parse_habr(name string, company string, salary int) []parser.Vacancy {
@@ -64,27 +83,28 @@ func parse_habr(name string, company string, salary int) []parser.Vacancy {
 	c := colly.NewCollector()
 	var vacancies []parser.Vacancy
 
+	mainLink := "https://career.habr.com/"
+
 	filled_links := make(map[string]bool)
 	habrVacanciesLink := fmt.Sprintf("https://career.habr.com/vacancies?type=all&q=%s&salary=%d",
 		name+"+"+company, salary) + "&page=%d"
 
 	c.OnHTML(".vacancy-card", func(h *colly.HTMLElement) {
-		card_company := h.ChildText(".vacancy-card__company-title")
-		fmt.Println("Company: ", card_company)
+		cardCompany := h.ChildText(".vacancy-card__company-title")
+		companyName := h.ChildText(".vacancy-card__skills")
 		filled_links[h.Request.URL.String()] = true
-		if company == "" || strings.EqualFold(company, card_company) {
+		if company == "" || strings.EqualFold(company, cardCompany) {
 			salaryString := h.ChildText(".basic-salary")
 			minPayment, maxPayment := parseSalary(salaryString)
 
 			vacancies = append(vacancies, parser.Vacancy{
-				Url:         h.ChildAttr("a.vacancy-card__title-link", "href"),
+				Url:         mainLink + h.ChildAttr("a.vacancy-card__title-link", "href"),
 				Name:        h.ChildText("a.vacancy-card__title-link"),
-				MinPayment:  minPayment,
-				MaxPayment:  maxPayment,
-				Description: h.ChildText(".vacancy-card__skills"),
-				Company:     card_company,
+				MinPayment:  &minPayment,
+				MaxPayment:  &maxPayment,
+				Description: &companyName,
+				Company:     cardCompany,
 			})
-			fmt.Printf("Appended")
 		}
 	})
 
@@ -95,7 +115,6 @@ func parse_habr(name string, company string, salary int) []parser.Vacancy {
 			fmt.Println("Could not convert page param: ", r.Request.URL)
 		}
 		newLink := fmt.Sprintf(habrVacanciesLink, page+1)
-		fmt.Println("New link- ", newLink)
 		if filled_links[r.Request.URL.String()] {
 			c.Visit(newLink)
 		}

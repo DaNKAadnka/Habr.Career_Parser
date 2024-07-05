@@ -20,3 +20,7 @@ func (s *VacService) InsertAll(vacancies []parser.Vacancy) error {
 func (s *VacService) GetAllWithFiltration(filters parser.SearchVacancies) ([]parser.Vacancy, error) {
 	return s.repo.GetAllWithFiltration(filters)
 }
+
+func (s *VacService) DeleteUnactual(ids []int) error {
+	return s.repo.DeleteUnactual(ids)
+}

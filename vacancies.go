@@ -1,13 +1,13 @@
 package parser
 
 type Vacancy struct {
-	Id          int    `json:"id"`
-	Url         string `json:"url"`
-	Name        string `json:"name"`
-	MinPayment  int    `json:"min_payment"`
-	MaxPayment  int    `json:"max_payment"`
-	Description string `json:"description"`
-	Company     string `json:"company"`
+	Id          int     `json:"id" db:"id"`
+	Url         string  `json:"url" db:"url"`
+	Name        string  `json:"name" db:"name"`
+	MinPayment  *int    `json:"min_payment" db:"min_payment"`
+	MaxPayment  *int    `json:"max_payment" db:"max_payment"`
+	Description *string `json:"description" db:"description"`
+	Company     string  `json:"company" db:"employer_name"`
 }
 
 type SearchVacancies struct {
