@@ -16,3 +16,7 @@ func NewVacService(repo repository.Vacancies) *VacService {
 func (s *VacService) InsertAll(vacancies []parser.Vacancy) error {
 	return s.repo.InsertAll(vacancies)
 }
+
+func (s *VacService) GetAllWithFiltration(filters parser.SearchVacancies) ([]parser.Vacancy, error) {
+	return s.repo.GetAllWithFiltration(filters)
+}

@@ -27,15 +27,36 @@ func (h *Handler) parseVacancies(ctx *gin.Context) {
 		return
 	}
 
-	vacancies := parse_habr(input.Name, input.Company, input.Salary)
-
-	err := h.service.Vacancies.InsertAll(vacancies)
-
+	oldVacancies, err := h.service.Vacancies.GetAllWithFiltration(input)
 	if err != nil {
-		logrus.Errorf("Vacancies insertion error: %s\n", err.Error())
+		logrus.Errorf("Error occured while getting old vacancies:\n %s", err.Error())
 		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	// Only one service needs to check old vacancies
+	if input.IsChosen {
+		if err := checkOldVacancies(oldVacancies); err != nil {
+			logrus.Errorf("Error occured while checking old vacancies:\n %s", err.Error())
+			newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	vacancies := parse_habr(input.Name, input.Company, input.Salary)
+
+	err = h.service.Vacancies.InsertAll(vacancies)
+	if err != nil {
+		logrus.Errorf("Error occured while inserting new vacancies:\n %s\n", err.Error())
+		newErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+}
+
+func checkOldVacancies(oldVacancies []parser.Vacancy) error {
+
+	fmt.Println(oldVacancies)
+	return nil
 }
 
 func parse_habr(name string, company string, salary int) []parser.Vacancy {
