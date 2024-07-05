@@ -1,51 +1,59 @@
 package main
 
 import (
-	"fmt"
-	server "habr-career"
-	"log"
+	parser "habr-career"
+	"habr-career/pkg/handler"
+	"habr-career/pkg/repository"
+	"habr-career/pkg/service"
 
-	"strconv"
+	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 
-	"github.com/gocolly/colly"
+	"github.com/spf13/viper"
 )
 
-func parse_habr() {
+// Swagger Comments
 
-	c := colly.NewCollector()
-	var vacanciesLinks []string
+// @title Parser
+// @version 1.0
+// @description API Server for Habr.Career parser
 
-	i := 1
-	cnt := 0
-	habrVacanciesLink := "https://career.habr.com/vacancies?type=all&q=Backend&page="
-
-	c.OnHTML(".vacancy-card__title", func(h *colly.HTMLElement) {
-		newLink := h.ChildAttr("a", "href")
-		// replace with set structure
-		cnt += 1
-		vacanciesLinks = append(vacanciesLinks, newLink)
-	})
-
-	c.OnScraped(func(r *colly.Response) {
-		i += 1
-		fmt.Println(r.Request.URL, cnt)
-		if cnt > 0 {
-			cnt = 0
-			c.Visit(habrVacanciesLink + strconv.Itoa(i))
-		}
-	})
-
-	c.Visit(habrVacanciesLink + "1")
-
-	for i, s := range vacanciesLinks {
-		fmt.Println(i, s)
-	}
-
-}
+// @host 127.0.0.1:8000
+// @BasePath /
 
 func main() {
-	s := new(server.Server)
-	if err := s.Run("8000"); err != nil {
-		log.Fatalf("error occured while running server: %s", err.Error())
+
+	logrus.SetFormatter(new(logrus.JSONFormatter))
+
+	if err := initConfig(); err != nil {
+		logrus.Fatalf("error occured while reading config")
 	}
+
+	db, err := repository.NewPostgresDB(repository.Config{
+		Host:     viper.GetString("db.host"),
+		Port:     viper.GetString("db.port"),
+		DBName:   viper.GetString("db.dbname"),
+		Username: viper.GetString("db.username"),
+		Password: viper.GetString("db.password"),
+		SSLMode:  viper.GetString("db.sslmode"),
+	})
+
+	if err != nil {
+		logrus.Fatalf("error occured while connecting to database\n%s", err.Error())
+	}
+
+	repos := repository.NewRepository(db)
+	services := service.NewService(repos)
+	handlers := handler.NewHandler(services)
+	s := new(parser.Server)
+	if err := s.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
+		logrus.Fatalf("error occured while running server: %s", err.Error())
+	}
+}
+
+func initConfig() error {
+	viper.AddConfigPath("config")
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	return viper.ReadInConfig()
 }
