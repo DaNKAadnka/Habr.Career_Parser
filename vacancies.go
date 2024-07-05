@@ -11,7 +11,8 @@ type Vacancy struct {
 }
 
 type SearchVacancies struct {
-	Name    string `json:"name" validate:"optional"`
-	Company string `json:"company" validate:"optional"`
-	Salary  int    `json:"salary" validate:"optional"`
+	Name     string `json:"name" validate:"optional"`
+	Company  string `json:"company" validate:"optional"`
+	Salary   int    `json:"salary" validate:"optional"`
+	IsChosen bool   `json:"is_chosen" binding:"required"`
 }
