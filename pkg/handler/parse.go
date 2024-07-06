@@ -16,7 +16,7 @@ import (
 // @Tags Parse
 // @ID parse-v
 // @Param input body parser.SearchVacancies true "input"
-// @Success 200 {integer} 1
+// @Success 200 {object} parser.VacancyAnalitics
 // @Router /vacancies [post]
 func (h *Handler) parseVacancies(ctx *gin.Context) {
 
@@ -48,7 +48,8 @@ func (h *Handler) parseVacancies(ctx *gin.Context) {
 
 	// Only one service needs to check old vacancies
 	if input.IsChosen {
-		vacancyForDelete := checkOldVacancies(&vacancies)
+		var vacancyForDelete []int
+		vacancyForDelete, vacancies = checkOldVacancies(vacancies)
 		if len(vacancyForDelete) != 0 {
 			err := h.service.Vacancies.DeleteUnactual(vacancyForDelete)
 			if err != nil {
@@ -57,25 +58,27 @@ func (h *Handler) parseVacancies(ctx *gin.Context) {
 				return
 			}
 		}
+		fmt.Println("Delete Done")
 	}
 
-	// for i, s := range vacancies {
-	// 	fmt.Println(i, s)
-	// }
-	fmt.Println(calculateAnalysis(vacancies))
+	for i, s := range vacancies {
+		fmt.Println(i, s)
+	}
+	response := calculateAnalysis(vacancies)
 
+	fmt.Println(response)
 	// Calculate statistics
-	ctx.JSON(http.StatusOK, calculateAnalysis(vacancies))
+	ctx.JSON(http.StatusOK, response)
 }
 
 // check if vacancies in db is actual
 // also removing unactual vacancies from oldVacancies
-func checkOldVacancies(vacancies *[]parser.Vacancy) []int {
+func checkOldVacancies(vacancies []parser.Vacancy) ([]int, []parser.Vacancy) {
 
 	j := 0
 	// id of vacancies that needed to be removed
 	var vacancyForDelete []int
-	for _, vacancy := range *vacancies {
+	for _, vacancy := range vacancies {
 
 		// If resume is not actual
 		if resp, err := http.Get(vacancy.Url); err != nil || resp.StatusCode == http.StatusNotFound {
@@ -83,15 +86,15 @@ func checkOldVacancies(vacancies *[]parser.Vacancy) []int {
 				fmt.Println("Error: ", err.Error())
 			}
 			vacancyForDelete = append(vacancyForDelete, vacancy.Id)
-			(*vacancies)[j] = vacancy
+			vacancies[j] = vacancy
 			j++
 		}
 	}
-	(*vacancies) = (*vacancies)[j:]
+	vacancies = vacancies[j:]
 	// for _, s := range vacancyForDelete {
 	// 	fmt.Println("Old: ", s)
 	// }
-	return vacancyForDelete
+	return vacancyForDelete, vacancies
 }
 
 func parse_habr(name string, company string, salary int) []parser.Vacancy {
