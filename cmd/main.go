@@ -18,7 +18,7 @@ import (
 // @version 1.0
 // @description API Server for Habr.Career parser
 
-// @host 127.0.0.1:8000
+// @host 127.0.0.1:8001
 // @BasePath /
 
 func main() {
