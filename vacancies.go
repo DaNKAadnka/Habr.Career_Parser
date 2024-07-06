@@ -16,3 +16,10 @@ type SearchVacancies struct {
 	Salary   int    `json:"salary" validate:"optional"`
 	IsChosen bool   `json:"is_chosen" binding:"required"`
 }
+
+type VacancyAnalitics struct {
+	Count              int    `json:"count"`
+	MostCompany        string `json:"most_company"`
+	CountOfMostCompany int    `json:"count_of_most_company"`
+	AvaragePayment     int    `json:"avarage_payment"`
+}
