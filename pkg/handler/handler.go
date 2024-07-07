@@ -5,12 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	// gin-swagger middleware
-	swaggerFiles "github.com/swaggo/files"
-
-	_ "habr-career/docs"
 )
 
 // swagger embed files
@@ -44,8 +38,6 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 
 	router.Use(CORSMiddleware())
-
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.POST("/vacancies", h.parseVacancies)
 
