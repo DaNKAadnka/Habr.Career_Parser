@@ -27,6 +27,8 @@ func (h *Handler) parseVacancies(ctx *gin.Context) {
 		return
 	}
 
+	fmt.Printf("Input: %#v\n", input)
+
 	newVacancies := parse_habr(input.Name, input.Company, input.Salary)
 
 	if len(newVacancies) != 0 {
@@ -66,7 +68,7 @@ func (h *Handler) parseVacancies(ctx *gin.Context) {
 	}
 	response := calculateAnalysis(vacancies)
 
-	fmt.Println(response)
+	fmt.Printf("Output: %#v\n", response)
 	// Calculate statistics
 	ctx.JSON(http.StatusOK, response)
 }
@@ -91,9 +93,9 @@ func checkOldVacancies(vacancies []parser.Vacancy) ([]int, []parser.Vacancy) {
 		}
 	}
 	vacancies = vacancies[j:]
-	// for _, s := range vacancyForDelete {
-	// 	fmt.Println("Old: ", s)
-	// }
+	for _, s := range vacancyForDelete {
+		fmt.Println("Old: ", s)
+	}
 	return vacancyForDelete, vacancies
 }
 
